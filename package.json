@@ -24,7 +24,12 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "vite --host 0.0.0.0"
+    "dev": "vite --host 0.0.0.0",
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}'"
+
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
   },
   "eslintConfig": {
     "extends": [
