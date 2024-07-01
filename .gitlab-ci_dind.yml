@@ -1,0 +1,70 @@
+stages:
+  - build
+  - lint
+  - test
+  - deploy
+
+variables:
+  DOCKER_IMAGE: "tmdb-devops-challenge:latest"
+  HOST_IP: $HOST_IP
+  HOST_USER: $HOST_USER
+  SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $DOCKER_IMAGE .
+    - docker save $DOCKER_IMAGE > docker_image.tar
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$HOST_IP" >> ~/.ssh/known_hosts
+    - scp -oStrictHostKeyChecking=no -r docker_image.tar "$HOST_USER@$HOST_IP:/tmp"
+
+lint:
+  stage: lint
+  dependencies:
+    - build
+  script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$HOST_IP" >> ~/.ssh/known_hosts
+    - ssh "$HOST_USER@$HOST_IP" docker load -i /tmp/docker_image.tar
+    - ssh "$HOST_USER@$HOST_IP" docker run --rm $DOCKER_IMAGE npm run lint
+
+test:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$HOST_IP" >> ~/.ssh/known_hosts
+    - ssh "$HOST_USER@$HOST_IP" docker load -i /tmp/docker_image.tar
+    - if [ -n "$(ssh "$HOST_USER@$HOST_IP" docker run --rm $DOCKER_IMAGE find ./src -type f -name '*.test.*')" ]; then
+        ssh "$HOST_USER@$HOST_IP" docker run --rm $DOCKER_IMAGE npm test;
+      else
+        echo "No tests found. Skipping test stage.";
+      fi
+
+deploy:
+  stage: deploy
+  dependencies:
+    - build
+  script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$HOST_IP" >> ~/.ssh/known_hosts
+    - ssh "$HOST_USER@$HOST_IP" docker load -i /tmp/docker_image.tar
+    - ssh "$HOST_USER@$HOST_IP" docker stop tmdb-devops-challenge || true
+    - ssh "$HOST_USER@$HOST_IP" docker rm tmdb-devops-challenge || true
+    - ssh "$HOST_USER@$HOST_IP" docker run -d --name tmdb-devops-challenge -p 3000:3000 $DOCKER_IMAGE
+  only:
+    - main
+

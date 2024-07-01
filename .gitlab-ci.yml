@@ -6,30 +6,30 @@ stages:
 
 variables:
   DOCKER_IMAGE: "tmdb-devops-challenge:latest"
-#  HOST_IP: $HOST_IP
-#  HOST_USER: $HOST_USER
-#  SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY
 
 build:
   stage: build
+  tags:
+    - shell
   script:
     - docker build -t $DOCKER_IMAGE .
-    - docker save $DOCKER_IMAGE > docker_image.tar
 
 lint:
   stage: lint
   dependencies:
     - build
+  tags:
+    - shell
   script:
-    - docker load -i /tmp/docker_image.tar
     - docker run --rm $DOCKER_IMAGE npm run lint
 
 test:
   stage: test
   dependencies:
     - build
+  tags:
+    - shell
   script:
-    - docker load -i /tmp/docker_image.tar
     - if [ -n "$(docker run --rm $DOCKER_IMAGE find ./src -type f -name '*.test.*')" ]; then
         docker run --rm $DOCKER_IMAGE npm test;
       else
@@ -40,8 +40,9 @@ deploy:
   stage: deploy
   dependencies:
     - build
+  tags:
+    - shell
   script:
-    - docker load -i /tmp/docker_image.tar
     - docker stop tmdb-devops-challenge || true
     - docker rm tmdb-devops-challenge || true
     - docker run -d --name tmdb-devops-challenge -p 3000:3000 $DOCKER_IMAGE
