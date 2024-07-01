@@ -1,17 +1,3 @@
-## To run from CMD
-
-In project folder run
-
-npm start
-
-## Build Docker
-
-In project folder run
-
-docker build -t {image name} . 
-
-docker run -p 3000 {image name}  
-
 # Fully Automated EC2 Instance Setup with Docker, Nginx, and GitLab CI/CD Pipeline #
 
   ## GitLab CI Pipeline
@@ -75,6 +61,13 @@ terraform apply
 5. **Verify Deployment**
 
 Once the Terraform apply process completes, verify that the EC2 instance is running, Docker and Nginx are installed, and the GitLab Runner is registered for any future commits actions on the main branch. Additionally, verify that the GitLab CI pipeline was triggered and successfully ran. You can access the running application by navigating to http://<node_ip> in your web browser.
+
+
+## Secure Handling of Secrets
+
+    AWS Systems Manager Parameter Store (SSM):
+        Sensitive values such as REGISTRATION_TOKEN and PIPELINE_TRIGGER_TOKEN are stored in the SSM Parameter Store.
+        These values are retrieved securely during the user data script execution, ensuring that they are not hard-coded in the script or Terraform configuration.
 
 
 ******Security Considerations******
